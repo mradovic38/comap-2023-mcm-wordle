@@ -120,7 +120,7 @@ the regime to be forecast.
 
 \section{Data and Cleaning}
 
-The raw data set covers 359 daily contests during 2022. The cleaning notebook
+The raw data set~[1] covers 359 daily contests during 2022. The cleaning notebook
 performs the following operations:
 
 \begin{itemize}
@@ -225,7 +225,7 @@ stabilizing transformation
   y_t = \log(1+n_t),
 \end{equation}
 
-fit a ridge regression with regularization $\alpha=12$ on standardized
+fit a ridge regression~[3,6] with regularization $\alpha=12$ on standardized
 $t$, and invert the transform:
 
 \begin{equation}
@@ -295,15 +295,15 @@ feature set, grouped as follows:
 
 \begin{itemize}
   \item \textbf{Rarity features:} corpus-level word rarity from
-        \texttt{wordfreq} (\texttt{zipf\_frequency}), sum of log letter
-        frequencies, inverse-frequency-weighted rarity;
+        \texttt{wordfreq}~[7] (\texttt{zipf\_frequency}), sum of log letter
+        frequencies~[10], inverse-frequency-weighted rarity;
   \item \textbf{Structure features:} number of unique letters, duplicate-letter
         penalty, number of vowels, number of rare letters
         ($\{z,x,q,j,k,v,b,p,y,g\}$);
   \item \textbf{Sequence features:} start-letter and end-letter scores from
-        empirical first- and last-letter frequencies, common-bigram and
-        common-trigram counts, positional negative-log-likelihood (an entropy-
-        like score);
+        empirical first- and last-letter frequencies~[10], common-bigram and
+        common-trigram counts~[10], positional negative-log-likelihood (an
+        entropy-like score);
   \item \textbf{Context features:} the total number of reported results for the
         day.
 \end{itemize}
@@ -316,15 +316,15 @@ positional patterns, and low-frequency letters drive solving difficulty.
 Three estimators were compared:
 
 \begin{enumerate}
-  \item \textbf{Per-bin ridge regression.} Seven independent
+  \item \textbf{Per-bin ridge regression}~[3,6]. Seven independent
         \texttt{Ridge}($\alpha=150$) models, one per try-bin, followed by
         non-negative clipping and renormalization.
   \item \textbf{Softmax linear model.} A custom estimator that fits seven ridge
-        regressions on standardized features and then passes their predictions
-        through a row-wise softmax, yielding a strictly positive distribution
-        without post-hoc clipping.
-  \item \textbf{CatBoost multi-output regressor} with \texttt{MultiRMSE} loss,
-        tuned via randomized search over depth, learning rate, $\ell_2$
+        regressions~[6] on standardized features and then passes their
+        predictions through a row-wise softmax, yielding a strictly positive
+        distribution without post-hoc clipping.
+  \item \textbf{CatBoost multi-output regressor}~[4,5] with \texttt{MultiRMSE}
+        loss, tuned via randomized search over depth, learning rate, $\ell_2$
         regularization, and number of iterations.
 \end{enumerate}
 
@@ -431,17 +431,18 @@ split into quartiles to define the four ordinal classes \textbf{Easy},
 In addition to the features of Section~5, the difficulty model uses:
 
 \begin{itemize}
-  \item per-letter and per-position frequency statistics, including a
+  \item per-letter and per-position frequency statistics~[10], including a
         \emph{positional surprise} score;
   \item consonant--vowel pattern rarity scored against the empirical
         $\mathrm{CV}$-pattern distribution;
-  \item Laplace-smoothed bigram log-probabilities;
+  \item Laplace-smoothed bigram log-probabilities~[10];
   \item repeated-letter information loss
         $\log_2\!\bigl(5!/\prod c_i!\bigr)$, vowel-cluster length, and letter
         entropy;
-  \item optional phoneme-based features (number of phonemes and syllables,
+  \item optional phoneme-based features~[9] (number of phonemes and syllables,
         rare-phoneme count, consonant-cluster count) computed via the
-        \texttt{pronouncing} CMU dictionary wrapper, used only when available;
+        \texttt{pronouncing} CMU dictionary wrapper~[8], used only when
+        available;
   \item context features: Hard Mode fraction and a weekend indicator.
 \end{itemize}
 
@@ -453,10 +454,11 @@ fitting to improve interpretability.
 Two regressors are evaluated on $y^{\mathrm{dtr}}$:
 
 \begin{enumerate}
-  \item ridge regression on standardized features, providing signed
+  \item ridge regression~[3,6] on standardized features, providing signed
         coefficients,
-  \item a random forest with $500$ trees and \texttt{min\_samples\_leaf}$=5$,
-        providing nonlinear interactions and permutation importances.
+  \item a random forest~[2,6] with $500$ trees and
+        \texttt{min\_samples\_leaf}$=5$, providing nonlinear interactions and
+        permutation importances.
 \end{enumerate}
 
 Both are evaluated with five-fold cross-validation reporting $R^2$ and mean
@@ -569,16 +571,41 @@ syllable structure or context-aware phoneme statistics.
 
 \section*{References}
 \addcontentsline{toc}{section}{References}
-
 \begin{enumerate}
-  \item Wordle results data set for COMAP 2023 Problem C.
-  \item Breiman, L. (2001). \textit{Random Forests}. \textit{Machine Learning}.
-  \item Friedman, J., Hastie, T., and Tibshirani, R. \textit{The Elements of Statistical Learning}.
-  \item Chen, T., and Guestrin, C. (2016). \textit{XGBoost: A Scalable Tree Boosting System}.
-  \item CatBoost documentation: \url{https://catboost.ai/}
-  \item Speer, R. \texttt{wordfreq}: word-frequency data for many languages.
-  \item Carnegie Mellon University Pronouncing Dictionary, via the
-        \texttt{pronouncing} Python package.
+  \item Wordle results data set, MCM/ICM 2023 Problem~C: \emph{Predicting Wordle
+        Results}. COMAP, Inc. (data file \texttt{Problem\_C\_Data\_Wordle.xlsx},
+        daily results 7~January--31~December 2022).
+        \url{https://www.contest.comap.com/undergraduate/contests/mcm/contests/2023/problems/}
+
+  \item Breiman, L. (2001). Random Forests. \emph{Machine Learning}, 45(1), 5--32.
+
+  \item Hastie, T., Tibshirani, R., and Friedman, J. (2009). \emph{The Elements of
+        Statistical Learning: Data Mining, Inference, and Prediction} (2nd ed.).
+        Springer.
+
+  \item Prokhorenkova, L., Gusev, G., Vorobev, A., Dorogush, A.~V., and Gulin, A.
+        (2018). CatBoost: Unbiased Boosting with Categorical Features.
+        \emph{Advances in Neural Information Processing Systems (NeurIPS)}~31.
+
+  \item CatBoost documentation. \url{https://catboost.ai/}
+
+  \item Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python.
+        \emph{Journal of Machine Learning Research}, 12, 2825--2830.
+
+  \item Speer, R. \texttt{wordfreq}: Word-frequency data for many languages.
+        \url{https://github.com/rspeer/wordfreq}
+
+  \item Carnegie Mellon University. \emph{The CMU Pronouncing Dictionary},
+        accessed via the \texttt{pronouncing} Python package
+        (A.~Parrish). \url{https://github.com/aparrish/pronouncing}
+
+  \item DSF Literacy Resources. \emph{The 44 Sounds (Phonemes) of English}.
+        Reading Rockets.
+        \url{https://www.readingrockets.org/sites/default/files/migrated/the-44-phonemes-of-english.pdf}
+
+  \item Oxford College Math Center, Emory University. \emph{Letter Frequencies in
+        English}.
+        \url{https://mathcenter.oxford.emory.edu/site/math125/englishLetterFreqs/}
 \end{enumerate}
 
 \end{document}

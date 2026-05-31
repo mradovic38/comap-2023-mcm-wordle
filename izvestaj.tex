@@ -1,87 +1,51 @@
-\documentclass[12pt,a4paper]{article}
-
-\usepackage[T1]{fontenc}
+\documentclass{article}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
 \usepackage[english]{babel}
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{booktabs}
-\usepackage{geometry}
-\usepackage{hyperref}
-\usepackage{xcolor}
-\usepackage{fancyhdr}
-\usepackage{enumitem}
-\usepackage{tcolorbox}
-\usepackage{titlesec}
-\usepackage{microtype}
 \usepackage{graphicx}
-\usepackage{caption}
-
-\geometry{top=2.5cm,bottom=2.5cm,left=2.8cm,right=2.8cm}
-
-\definecolor{primaryblue}{RGB}{25,80,160}
-\definecolor{darkgray}{RGB}{60,60,60}
-\definecolor{lightgray}{RGB}{245,245,245}
-
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small\textcolor{primaryblue}{Predicting Wordle Results}}
-\fancyhead[R]{\small\textcolor{darkgray}{Mathematical Modeling}}
-\fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-
-\titleformat{\section}{\large\bfseries\color{primaryblue}}{\thesection.}{0.7em}{}
-\titleformat{\subsection}{\normalsize\bfseries\color{darkgray}}{\thesubsection.}{0.6em}{}
-
-\newtcolorbox{infobox}{colback=lightgray,colframe=primaryblue,arc=4pt,boxrule=0.6pt}
+\usepackage{hyperref}
+\usepackage{enumitem}
 
 \graphicspath{{figures/}}
 
+%\pagenumbering{gobble}
+
 \begin{document}
 
-\begin{titlepage}
-  \centering
-  \vspace*{2cm}
 
-  {\Huge\bfseries\color{primaryblue} Predicting Wordle Results\\[0.6em]}
-  {\large\color{darkgray} Data Cleaning, Feature Engineering, and Predictive Modeling}
+\begin{center}
+	{\huge Predicting Wordle Results} \\
+		\vspace*{3mm}
+		{\large 19M081MMS Mathematical Modeling and Simulations \\
+		Palace of Science, Center for Applied Mathematics \\
+		\vspace*{3mm}
+		17 April 2026. }
+\end{center}
 
-  \vspace{1.4cm}
-  \rule{0.72\linewidth}{1.2pt}
-  \vspace{1.4cm}
+\vspace*{10mm}
 
-  \begin{infobox}
-    \centering
-    A report on the Wordle data set, the preprocessing pipeline, participation
-    forecasting, solve-distribution prediction, and word-difficulty classification.
-  \end{infobox}
+\begin{tabular}{r l}
+\textbf{Students:} &  2025/3228 Mihailo Radović \\
+				&	2025/3330 Boško Zlatanović \\
+				&	2025/3318 Filip Marčić \\
+				&   \\
+\textbf{Mentor:} & Prof.~Dr.~Nataša Ćirović
+\end{tabular}
 
-  \vspace{1.8cm}
-  {\large Course: Mathematical Modeling}\\[0.3em]
-  {\large\bfseries Wordle Results Prediction Project}\\[0.3em]
-  \vspace{6cm}
-    \begin{minipage}[t]{0.45\textwidth}
-    \centering
-    {\large\bfseries Authors}\\[0.4em]
-    {\large
-    Boško Zlatanović\\
-    Mihailo Radović\\
-    Filip Marčić
-    }
-    \end{minipage}
-    \hfill
-    \begin{minipage}[t]{0.45\textwidth}
-    \centering
-    {\large\bfseries Professor}\\[0.4em]
-    {\large
-    Prof.~Dr.~Nataša Ćirović
-    }
-\end{minipage}
-  \vfill
-  {\large \today}
-\end{titlepage}
+\vspace*{5mm}
+\textbf{Main responsibilities:}
+\vspace*{3mm}
 
-\tableofcontents
-\newpage
+\begin{tabular}{r l}
+	Problem presentation:  Boško Zlatanović, Mihailo Radović, Filip Marčić&  \\
+	Programming: Boško Zlatanović, Mihailo Radović, Filip Marčić	\\
+	Report:	Boško Zlatanović
+\end{tabular}
+
+\vspace*{15mm}
 
 \section{Abstract}
 
@@ -105,10 +69,20 @@ log-transformed ridge regression for participation, multi-output regression
 (ridge, softmax, CatBoost) for the solve distribution under Kullback--Leibler
 loss, and a detrended quartile-based classifier for difficulty. Final numerical
 results, including the forecast for 1 March 2023 and the predicted distribution
-for the word \texttt{EERIE}, are reported in Sections~4, 5, and 6.
+for the word \texttt{EERIE}, are reported in the corresponding sections.
 
-\section{Problem Overview}
+\section{Introduction}
 
+\subsection*{Background and motivation}
+Wordle is a daily word-guessing game in which players attempt to identify a
+five-letter solution word within six tries. During 2022 a large number of
+players shared their results on Twitter, producing a public time series of
+daily participation and outcome distributions. Modeling this data is of
+interest because it combines a clear temporal component (audience growth and
+decay) with a per-word lexical component (which words are intrinsically harder
+to solve).
+
+\subsection*{Problem formulation}
 The problem is not only to describe the observed Wordle data but to build
 predictive models for future behavior. The report focuses on:
 
@@ -122,49 +96,48 @@ predictive models for future behavior. The report focuses on:
         strongly associated with difficulty.
 \end{itemize}
 
+\subsection*{Assumptions}
 A key empirical observation, established in the exploratory notebook and used
 throughout, is that the reporting population is non-stationary: the share of
 reports submitted in Hard Mode rises steadily through 2022 while the absolute
 count of Hard Mode players is comparatively flat. This implies that the casual
 audience is shrinking and that recent observations are more representative of
-the regime to be forecast.
+the regime to be forecast. We further assume that the seven try-counts can be
+treated as a probability vector and that the CMU pronouncing dictionary is a
+reasonable, if imperfect, source for phonetic features.
 
-\section{Data and Cleaning}
+\section{Problem Analysis and Model}
 
-The raw data set~[1] covers 359 daily contests during 2022. The cleaning notebook
-performs the following operations:
+\subsection*{Variables}
+The independent variables include the integer day index $t$, the solution word
+and its lexical features (rarity, structural, sequence, and phonetic
+attributes), and the daily context (number of reported results, Hard Mode
+fraction, weekend indicator). The dependent variables are: (i) the number of
+reported scores $n_t$ on day $t$, (ii) the seven-bin solve probability vector
+$\mathbf{p} = (p_1,\dots,p_6,p_X)$, and (iii) a four-level ordinal difficulty
+class. Model parameters include the ridge regularization $\alpha$, CatBoost
+hyperparameters, and quartile thresholds derived from the detrended target.
 
-\begin{itemize}
-  \item renames the supplied columns to a consistent lowercase schema,
-  \item corrects five obvious transcription errors in the solution words
-        (\texttt{clen}$\to$\texttt{clean}, \texttt{rprobe}$\to$\texttt{probe},
-        \texttt{tash}$\to$\texttt{trash}, \texttt{favor\,}$\to$\texttt{favor},
-        \texttt{marxh}$\to$\texttt{march}),
-  \item fixes a missing trailing zero in the \texttt{n\_reported} field for the
-        word \texttt{study} (2569 $\to$ 25690),
-  \item removes the single row dated 27 March 2022 whose try percentages do not
-        sum consistently,
-  \item exports the cleaned table as \texttt{data/cleaned.csv}.
-\end{itemize}
+\subsection*{Model}
 
-Two derived quantities are used repeatedly. The Hard Mode share
+\paragraph{Data cleaning.}
+The raw data set~[1] covers 359 daily contests during 2022. The cleaning step
+renames the columns to a consistent lowercase schema, corrects five obvious
+transcription errors in the solution words
+(\texttt{clen}$\to$\texttt{clean}, \texttt{rprobe}$\to$\texttt{probe},
+\texttt{tash}$\to$\texttt{trash}, \texttt{favor\,}$\to$\texttt{favor},
+\texttt{marxh}$\to$\texttt{march}), fixes a missing trailing zero in the
+\texttt{n\_reported} field for the word \texttt{study} (2569 $\to$ 25690),
+removes the single row dated 27 March 2022 whose try percentages do not sum
+consistently, and exports the cleaned table as \texttt{data/cleaned.csv}.
 
+Two derived quantities are used repeatedly:
 \begin{equation}
   h_t = 100 \cdot \frac{n^{\mathrm{hard}}_t}{n^{\mathrm{reported}}_t},
+  \qquad
+  t = (\text{date} - \text{date}_{\min}) \ \text{in days}.
 \end{equation}
 
-is diagnostic of the population mix, while the integer day index
-
-\begin{equation}
-  t = (\text{date} - \text{date}_{\min}) \ \text{in days},
-\end{equation}
-
-is the regressor used for trend modeling.
-
-% ─────────────────────────────────────────────────────────────
-% FIGURE 1: Boxplots / outliers (data_cleaninig_and_exploration.ipynb, cell 14)
-% Optional: include only the most informative boxplot (e.g. n_reported)
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.55\linewidth]{fig_boxplot_nreported.png}
@@ -174,136 +147,64 @@ is the regressor used for trend modeling.
   \label{fig:boxplot}
 \end{figure}
 
-\subsection{Exploratory observations}
-
 A by-word inspection of the try distribution suggests that, for most words, the
 seven bins are reasonably approximated by a discrete bell shape centered between
-three and five tries. This motivates treating the seven try-counts as a
-probability vector rather than as seven independent regression targets.
+three and five tries.
 
-% ─────────────────────────────────────────────────────────────
-% FIGURE 2: Per-word try distribution with fitted normal
-% Source: data_cleaninig_and_exploration.ipynb, cell 18 (function
-% plot_tries_with_normal_dist). Pick e.g. 'study' or 'knoll'.
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.6\linewidth]{fig_tries_distribution_study.png}
   \caption{Empirical try distribution for the word \texttt{study} overlaid with
-  a fitted normal density. The unimodal shape supports modeling the seven try
-  counts jointly as a probability vector.}
+  a fitted normal density.}
   \label{fig:tries-normal}
 \end{figure}
 
-\section{Model 1: Forecasting Participation}
-
-The target is the number of reported scores $n_t$ on 1 March 2023. Because the
-hard-mode share analysis shows a regime change in the first half of 2022, the
+\paragraph{Model 1: Forecasting participation.}
+The target is the number of reported scores $n_t$ on 1 March 2023. The
 modeling sample is restricted to dates after 10 May 2022 (235 observations).
+A simple linear baseline
+\begin{equation}
+  n_t = \beta_0 + \beta_1 t + \varepsilon_t
+\end{equation}
+is replaced by a log-transformed ridge model~[3,6] with $\alpha=12$ on
+standardized $t$:
+\begin{equation}
+  y_t = \log(1+n_t),
+  \qquad
+  \hat n_t = \exp(\hat y_t) - 1.
+\end{equation}
+Model selection used a chronological 90/10 train/test split, and the
+log-transformed ridge gave a lower test RMSE than the linear baseline.
 
-% ─────────────────────────────────────────────────────────────
-% FIGURE 3: n_reported over time (full vs. filtered)
-% Source: 1.ipynb, cells 9 and 11 (function plot_n_players)
-% Recommended: two-panel figure or just the filtered one
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.95\linewidth]{fig_nreported_over_time.png}
-  \caption{Number of reported results over time. The early-2022 peak above
-  $3{\times}10^{5}$ is followed by a steady decay; the modeling sample begins on
+  \caption{Number of reported results over time. The modeling sample begins on
   10 May 2022.}
   \label{fig:nreported}
 \end{figure}
 
-\subsection{Baseline linear regression}
-
-Let $n_t$ denote the number of reported scores on day $t$. A simple baseline is
-
-\begin{equation}
-  n_t = \beta_0 + \beta_1 t + \varepsilon_t.
-\end{equation}
-
-This model is easy to interpret but produces a strictly linear extrapolation,
-which underestimates the curvature of the observed decay and can yield
-non-positive predictions for late dates.
-
-\subsection{Log-transformed ridge regression}
-
-To enforce positivity and capture the slowing decay, we apply the variance-
-stabilizing transformation
-
-\begin{equation}
-  y_t = \log(1+n_t),
-\end{equation}
-
-fit a ridge regression~[3,6] with regularization $\alpha=12$ on standardized
-$t$, and invert the transform:
-
-\begin{equation}
-  \hat n_t = \exp(\hat y_t) - 1.
-\end{equation}
-
-Model selection used a chronological 90/10 train/test split, and the
-log-transformed ridge gave a lower test RMSE than the linear baseline.
-
-% ─────────────────────────────────────────────────────────────
-% FIGURE 4: Train/test split with linear and exponential fits
-% Source: 1.ipynb, cells 17 and 19 (function `train`)
-% Recommended: side-by-side (linear vs exp) OR just the exp-ridge fit
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.95\linewidth]{fig_participation_fit.png}
   \caption{Train/test fit of the exponential ridge model on
-  \texttt{n\_reported}. The transformed model captures the curvature of the
-  decay and remains strictly positive.}
+  \texttt{n\_reported}.}
   \label{fig:participation-fit}
 \end{figure}
 
-\subsection{Forecast}
-
-Refit on the full filtered sample, the model predicts
-
-\begin{equation}
-  \widehat{n}_{2023\text{-}03\text{-}01} \approx 15{,}607
-  \text{ reported results.}
-\end{equation}
-
-This is consistent with the trajectory of late December 2022 and reflects the
-continuing decline in casual participation.
-
-\section{Model 2: Predicting the Solve Distribution}
-
-The second task is to predict the full outcome distribution for a future Wordle
-solution word. The target is the seven-category probability vector
-
-\[
-  \mathbf{p} = (p_1, p_2, p_3, p_4, p_5, p_6, p_X),
-\]
-
-where $p_k$ is the share of players solving in $k$ tries and $p_X$ is the
-failure rate. Per-row normalization is applied so that $\sum_k p_k = 1$.
-
-\subsection{Evaluation criterion}
-
-Since the output is a probability vector, the appropriate evaluation metric is
-the Kullback--Leibler divergence
-
+\paragraph{Model 2: Predicting the solve distribution.}
+The target is the seven-category probability vector
+$\mathbf{p} = (p_1, p_2, p_3, p_4, p_5, p_6, p_X)$, with per-row normalization
+so that $\sum_k p_k = 1$. The evaluation metric is the Kullback--Leibler
+divergence
 \begin{equation}
   D_{\mathrm{KL}}(\mathbf{p}\,\|\,\mathbf{q})
   = \sum_{k} p_k \log\!\left(\frac{p_k}{q_k}\right),
 \end{equation}
+evaluated per row and averaged over a five-fold cross-validation, with both
+vectors clipped to a small $\varepsilon = 10^{-9}$.
 
-evaluated per row and averaged over a five-fold cross-validation. Both vectors
-are clipped to a small $\varepsilon = 10^{-9}$ to avoid numerical singularities.
-Lower values indicate a closer match between predicted and observed
-distributions.
-
-\subsection{Feature engineering}
-
-From the solution word and the daily context the notebook constructs a compact
-feature set, grouped as follows:
-
+The feature set is grouped as:
 \begin{itemize}
   \item \textbf{Rarity features:} corpus-level word rarity from
         \texttt{wordfreq}~[7] (\texttt{zipf\_frequency}), sum of log letter
@@ -311,64 +212,87 @@ feature set, grouped as follows:
   \item \textbf{Structure features:} number of unique letters, duplicate-letter
         penalty, number of vowels, number of rare letters
         ($\{z,x,q,j,k,v,b,p,y,g\}$);
-  \item \textbf{Sequence features:} start-letter and end-letter scores from
-        empirical first- and last-letter frequencies~[10], common-bigram and
-        common-trigram counts~[10], positional negative-log-likelihood (an
-        entropy-like score);
+  \item \textbf{Sequence features:} start- and end-letter scores from empirical
+        first- and last-letter frequencies~[10], common-bigram and
+        common-trigram counts~[10], positional negative-log-likelihood;
   \item \textbf{Context features:} the total number of reported results for the
         day.
 \end{itemize}
 
-These features encode the working hypothesis that repeated letters, unusual
-positional patterns, and low-frequency letters drive solving difficulty.
-
-\subsection{Models}
-
-Three estimators were compared:
-
-\begin{enumerate}
-  \item \textbf{Per-bin ridge regression}~[3,6]. Seven independent
-        \texttt{Ridge}($\alpha=150$) models, one per try-bin, followed by
-        non-negative clipping and renormalization.
-  \item \textbf{Softmax linear model.} A custom estimator that fits seven ridge
-        regressions~[6] on standardized features and then passes their
-        predictions through a row-wise softmax, yielding a strictly positive
-        distribution without post-hoc clipping.
-  \item \textbf{CatBoost multi-output regressor}~[4,5] with \texttt{MultiRMSE}
-        loss, tuned via randomized search over depth, learning rate, $\ell_2$
-        regularization, and number of iterations.
-\end{enumerate}
-
-For each estimator a greedy forward feature selection over the feature pool was
-run, scored by mean cross-validated KL divergence.
-
-\subsection{Results}
-
-The best forward-selected subset for the per-bin ridge baseline,
-\(\{\text{n\_unique\_letters},\ \text{n\_rare\_letters},\ \text{rarity},\)
-\(\text{positional\_entropy},\ \text{start\_letter\_score}\}\), achieved a
-mean KL of $0.0577$. The softmax linear model, restricted to the same family
-of features, gave a higher KL (mean $\approx 0.365$) because softmax compresses
-the dynamic range of bin-specific signals. The CatBoost multi-output regressor
-produced the lowest KL among the three approaches and was used for the final
-\texttt{EERIE} prediction.
-
-\subsection{Prediction rule}
-
-If a model returns raw bin scores $s_1,\dots,s_7$, the prediction is
-
+Three estimators were compared: per-bin ridge regression~[3,6] with
+$\alpha=150$ followed by non-negative clipping and renormalization; a softmax
+linear model that passes seven ridge predictions through a row-wise softmax;
+and a CatBoost multi-output regressor~[4,5] with \texttt{MultiRMSE} loss tuned
+via randomized search. For each estimator a greedy forward feature selection
+was run, scored by mean cross-validated KL divergence. If a model returns raw
+bin scores $s_1,\dots,s_7$, the prediction is
 \begin{equation}
-  \hat p_k = \frac{\max(s_k, 0)}{\sum_{j=1}^{7} \max(s_j, 0)},
+  \hat p_k = \frac{\max(s_k, 0)}{\sum_{j=1}^{7} \max(s_j, 0)}.
 \end{equation}
 
-guaranteeing a valid probability vector.
+\paragraph{Model 3: Word difficulty classification.}
+Each solution word is assigned to one of four ordinal difficulty classes.
+Given the empirical distribution $\mathbf{p}_t$, the expected number of
+attempts on day $t$ is
+\begin{equation}
+  \mu_t = \sum_{k=1}^{7} k\,p_{t,k}.
+\end{equation}
+Because the corpus-wide mean drifts downward over the year, a univariate trend
+is removed before classifying:
+\begin{equation}
+  \mu_t \approx \alpha + \beta\, c_t,
+  \qquad
+  y^{\mathrm{dtr}}_t = \mu_t - (\hat\alpha + \hat\beta\, c_t),
+\end{equation}
+where $c_t$ is a normalized contest index in $[0,1]$. The detrended values are
+split into quartiles to define the four ordinal classes \textbf{Easy},
+\textbf{Medium}, \textbf{Hard}, and \textbf{Very Hard}.
 
-\subsection{Example word: \texttt{EERIE}}
+In addition to the features of Model~2, the difficulty model uses per-letter
+and per-position frequency statistics~[10] including a positional surprise
+score; consonant--vowel pattern rarity; Laplace-smoothed bigram
+log-probabilities~[10]; repeated-letter information loss
+$\log_2\!\bigl(5!/\prod c_i!\bigr)$, vowel-cluster length, and letter entropy;
+optional phoneme-based features~[9] via the \texttt{pronouncing} CMU
+wrapper~[8]; and context features (Hard Mode fraction, weekend indicator).
+Two regressors are evaluated on $y^{\mathrm{dtr}}$: ridge regression~[3,6] on
+standardized features and a random forest~[2,6] with $500$ trees and
+\texttt{min\_samples\_leaf}$=5$. The continuous prediction is then mapped back
+to one of the four ordinal classes using the quartile thresholds, and agreement
+is measured by quadratic-weighted Cohen's $\kappa$.
+
+\subsection*{Computer implementation}
+All models are implemented in Python. Data cleaning and exploration use
+\texttt{pandas}, \texttt{numpy}, and \texttt{matplotlib}. Ridge regression and
+random forest models are taken from \texttt{scikit-learn}~[6]. Gradient
+boosting uses \texttt{CatBoost}~[4,5]. Lexical features use
+\texttt{wordfreq}~[7] for corpus rarity and \texttt{pronouncing}~[8] for
+phonetic attributes. The cleaning notebook produces \texttt{data/cleaned.csv};
+the participation, distribution, and difficulty pipelines live in
+\texttt{1.ipynb}, \texttt{2.ipynb}, and \texttt{3.py} respectively. The main
+practical difficulties encountered were missing phonetic entries in the CMU
+dictionary for invented Wordle words and the need to enforce a valid
+probability vector at prediction time.
+
+\subsection*{Simulation and results}
+
+Refit on the full filtered sample, the participation model predicts
+\begin{equation}
+  \widehat{n}_{2023\text{-}03\text{-}01} \approx 15{,}607
+  \text{ reported results.}
+\end{equation}
+
+The best forward-selected subset for the per-bin ridge baseline of Model~2,
+\(\{\text{n\_unique\_letters},\ \text{n\_rare\_letters},\ \text{rarity},\)
+\(\text{positional\_entropy},\ \text{start\_letter\_score}\}\), achieved a
+mean KL of $0.0577$. The softmax linear model gave a higher KL
+(mean $\approx 0.365$). The CatBoost multi-output regressor produced the
+lowest KL among the three approaches and was used for the final
+\texttt{EERIE} prediction.
 
 The word \texttt{EERIE} contains three vowels, the repeated letter \texttt{e},
-and an unusually low number of unique letters (three), all of which the model
-treats as risk factors. The CatBoost prediction for 1 March 2023 is reported
-in Table~\ref{tab:eerie}.
+and an unusually low number of unique letters (three). The CatBoost prediction
+for 1 March 2023 is reported in Table~\ref{tab:eerie}.
 
 \begin{table}[h!]
   \centering
@@ -394,172 +318,65 @@ The implied expected number of attempts is
 \(\sum_k k\,\hat p_k \approx 4.30\), placing \texttt{EERIE} above the
 contemporaneous mean.
 
-% ─────────────────────────────────────────────────────────────
-% FIGURE 5: Predicted distribution for EERIE (bar chart)
-% Source: produce a quick matplotlib bar chart from the array
-% [0.0012, 0.0499, 0.1840, 0.3204, 0.2940, 0.1330, 0.0175] in 2.ipynb
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.6\linewidth]{fig_eerie_distribution.png}
-  \caption{Predicted solve distribution for \texttt{EERIE} (CatBoost). The mass
-  is concentrated in the 4--5 try bins, with a non-negligible failure
-  probability.}
+  \caption{Predicted solve distribution for \texttt{EERIE} (CatBoost).}
   \label{fig:eerie-dist}
 \end{figure}
 
-\section{Model 3: Word Difficulty Classification}
+Under the detrended scheme of Model~3, \texttt{EERIE} is predicted in the upper
+tail of the difficulty scale by both Ridge and Random Forest, consistent with
+its three unique letters, two vowel clusters, and the repeated initial
+\texttt{ee} bigram. The classifier therefore places it in the \textbf{Hard} or
+\textbf{Very Hard} bracket.
 
-The third task is to assign each solution word to one of four ordinal difficulty
-classes. The script \texttt{3.py} constructs a continuous regression target
-from the observed outcome distribution and then maps it to quartile-based
-classes.
-
-\subsection{Detrended expected number of attempts}
-
-Given the empirical distribution $\mathbf{p}_t$, the expected number of attempts
-on day $t$ is
-
-\begin{equation}
-  \mu_t = \sum_{k=1}^{7} k\,p_{t,k}.
-\end{equation}
-
-Because the corpus-wide mean drifts downward over the year (players adapt and
-the audience self-selects), a univariate trend is removed before classifying:
-
-\begin{equation}
-  \mu_t \approx \alpha + \beta\, c_t,
-  \qquad
-  y^{\mathrm{dtr}}_t = \mu_t - (\hat\alpha + \hat\beta\, c_t),
-\end{equation}
-
-where $c_t$ is a normalized contest index in $[0,1]$. The detrended values are
-split into quartiles to define the four ordinal classes \textbf{Easy},
-\textbf{Medium}, \textbf{Hard}, and \textbf{Very Hard}.
-
-\subsection{Features}
-
-In addition to the features of Section~5, the difficulty model uses:
-
-\begin{itemize}
-  \item per-letter and per-position frequency statistics~[10], including a
-        \emph{positional surprise} score;
-  \item consonant--vowel pattern rarity scored against the empirical
-        $\mathrm{CV}$-pattern distribution;
-  \item Laplace-smoothed bigram log-probabilities~[10];
-  \item repeated-letter information loss
-        $\log_2\!\bigl(5!/\prod c_i!\bigr)$, vowel-cluster length, and letter
-        entropy;
-  \item optional phoneme-based features~[9] (number of phonemes and syllables,
-        rare-phoneme count, consonant-cluster count) computed via the
-        \texttt{pronouncing} CMU dictionary wrapper~[8], used only when
-        available;
-  \item context features: Hard Mode fraction and a weekend indicator.
-\end{itemize}
-
-Constant columns and pairwise correlations above $0.95$ are removed before
-fitting to improve interpretability.
-
-\subsection{Regression models}
-
-Two regressors are evaluated on $y^{\mathrm{dtr}}$:
-
-\begin{enumerate}
-  \item ridge regression~[3,6] on standardized features, providing signed
-        coefficients,
-  \item a random forest~[2,6] with $500$ trees and
-        \texttt{min\_samples\_leaf}$=5$, providing nonlinear interactions and
-        permutation importances.
-\end{enumerate}
-
-Both are evaluated with five-fold cross-validation reporting $R^2$ and mean
-absolute error. The continuous prediction is then mapped back to one of the
-four ordinal classes using the quartile thresholds, and agreement with the
-empirical classes is measured by quadratic-weighted Cohen's $\kappa$.
-
-% ─────────────────────────────────────────────────────────────
-% FIGURE 6: Ridge coefficients on standardized features
-% Source: 3.py, section 11. Plot the `coef_df` (sign-coded bar chart).
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.85\linewidth]{fig_ridge_coefficients.png}
-  \caption{Ridge coefficients on standardized features (positive = harder).
-  Repeated letters, low mean letter frequency, and high positional surprise
-  push the predicted difficulty up.}
+  \caption{Ridge coefficients on standardized features (positive = harder).}
   \label{fig:ridge-coef}
 \end{figure}
 
-% ─────────────────────────────────────────────────────────────
-% FIGURE 7: Random forest feature importance (top 12)
-% Source: 3.py, section 11, `rf_imp.head(12)`
-% ─────────────────────────────────────────────────────────────
 \begin{figure}[h!]
   \centering
   \includegraphics[width=0.85\linewidth]{fig_rf_importance.png}
-  \caption{Top random-forest feature importances. The nonlinear model recovers
-  similar dominant variables but reweights interactions among vowel structure
-  and bigram probability.}
+  \caption{Top random-forest feature importances.}
   \label{fig:rf-importance}
 \end{figure}
 
-\subsection{Interpretation}
+\subsection*{Analysis and discussion}
 
-The signed Ridge coefficients and the random-forest importances agree on the
-qualitative picture: difficulty is not driven by a single variable. Repeated
-letters, low mean letter frequency, unusual consonant--vowel patterns, and weak
-bigram structure all contribute positively to the predicted detrended score.
-Conversely, words with high letter entropy and a common opening letter score as
-easier. This is consistent with the working hypothesis that Wordle difficulty
-combines lexical rarity with structural ambiguity (low information per guess).
-
-\subsection{Example word: \texttt{EERIE}}
-
-Under the detrended scheme \texttt{EERIE} is predicted in the upper tail of the
-difficulty scale by both Ridge and Random Forest, consistent with its three
-unique letters, two vowel clusters, and the repeated initial \texttt{ee} bigram.
-The classifier therefore places it in the \textbf{Hard} or \textbf{Very Hard}
-bracket, in agreement with the right-shifted distribution of Section~5.6.
-
-\section{Discussion}
-
-The three models are complementary:
-
-\begin{itemize}
-  \item the participation model explains how many people are expected to
-        report,
-  \item the distribution model predicts how those reports spread across
-        outcomes,
-  \item the difficulty model explains \emph{why} certain solution words shift
-        the distribution toward worse outcomes.
-\end{itemize}
+The three models are complementary: the participation model explains how many
+people are expected to report; the distribution model predicts how those
+reports spread across outcomes; the difficulty model explains \emph{why}
+certain solution words shift the distribution toward worse outcomes. The signed
+Ridge coefficients and the random-forest importances agree on the qualitative
+picture: difficulty is not driven by a single variable. Repeated letters, low
+mean letter frequency, unusual consonant--vowel patterns, and weak bigram
+structure all contribute positively to the predicted detrended score.
+Conversely, words with high letter entropy and a common opening letter score
+as easier.
 
 The main modeling lessons are:
-
 \begin{enumerate}
   \item Temporal regime matters: restricting the participation sample to the
         post-May 2022 period materially improved the 2023 forecast.
   \item Word structure matters more than raw letter rarity in isolation;
         repetition and positional surprise carry the most signal.
   \item Predicting the full seven-bin distribution is more informative than
-        predicting a single mean attempt count, because the failure tail
-        $p_X$ carries information about audience self-selection that the mean
+        predicting a single mean attempt count, because the failure tail $p_X$
+        carries information about audience self-selection that the mean
         absorbs.
 \end{enumerate}
 
-\subsection{Limitations}
-
-Several limitations of the present analysis should be acknowledged:
-
-\begin{itemize}
-  \item The data set spans a single year; the model cannot distinguish a long-
-        term decline from a one-off post-pandemic correction.
-  \item The phonetic features rely on the CMU dictionary, which fails for many
-        invented or proper-noun words used as Wordle solutions.
-  \item The difficulty target is constructed from the same outcome
-        distribution that the distribution model predicts, so Models~2 and~3
-        share information; cross-comparison should be interpreted with care.
-\end{itemize}
+Several limitations should be acknowledged: the data set spans a single year,
+so the model cannot distinguish a long-term decline from a one-off
+post-pandemic correction; phonetic features rely on the CMU dictionary, which
+fails for many invented or proper-noun Wordle words; and the difficulty target
+is constructed from the same outcome distribution that Model~2 predicts, so
+Models~2 and~3 share information and cross-comparison should be interpreted
+with care.
 
 \section{Conclusion}
 
@@ -573,56 +390,75 @@ gives a transparent difficulty ranking. For \texttt{EERIE} all three pieces
 agree: a low-volume, hard-to-solve word with predicted distribution mass
 centered on four to five tries.
 
-The strongest conclusion is that both the calendar date and the lexical form of
-the solution word influence player behavior, so a combined time-series and
+The strongest conclusion is that both the calendar date and the lexical form
+of the solution word influence player behavior, so a combined time-series and
 feature-based modeling approach is more appropriate than a purely static one.
-Future improvements could include nonlinear time trends, uncertainty intervals
-for the participation forecast, and richer linguistic features such as
-syllable structure or context-aware phoneme statistics.
+The model can be verified by holding out later weeks of 2022 and comparing
+predicted versus observed participation and distributions. Sensitivity to the
+assumed regime change date (10 May 2022) and to the choice of feature subset
+is moderate but non-negligible. Future improvements could include nonlinear
+time trends, uncertainty intervals for the participation forecast, and richer
+linguistic features such as syllable structure or context-aware phoneme
+statistics.
 
-\section*{References}
-\addcontentsline{toc}{section}{References}
-\begin{enumerate}
-  \item COMAP, Inc. \href{https://www.contest.comap.com/undergraduate/contests/mcm/contests/2023/problems/}{\emph{MCM/ICM 2023 Problem~C: Predicting Wordle Results}}
+\begin{thebibliography}{99}
+  \bibitem{comap} COMAP, Inc. \href{https://www.contest.comap.com/undergraduate/contests/mcm/contests/2023/problems/}{\emph{MCM/ICM 2023 Problem~C: Predicting Wordle Results}}
         (data file \texttt{Problem\_C\_Data\_Wordle.xlsx}; daily results
         7~January--31~December 2022).
 
-  \item Breiman, L. (2001). \href{https://doi.org/10.1023/A:1010933404324}{Random Forests}.
+  \bibitem{breiman} Breiman, L. (2001). \href{https://doi.org/10.1023/A:1010933404324}{Random Forests}.
         \emph{Machine Learning}, 45(1), 5--32.
 
-  \item Hastie, T., Tibshirani, R., and Friedman, J. (2009).
+  \bibitem{esl} Hastie, T., Tibshirani, R., and Friedman, J. (2009).
         \href{https://doi.org/10.1007/978-0-387-84858-7}{\emph{The Elements of
-        Statistical Learning: Data Mining, Inference, and Prediction}} (2nd ed.).
-        Springer.
+        Statistical Learning: Data Mining, Inference, and Prediction}}
+        (2nd ed.). Springer.
 
-  \item Prokhorenkova, L., Gusev, G., Vorobev, A., Dorogush, A.~V., and Gulin, A.
-        (2018). \href{https://arxiv.org/abs/1706.09516}{CatBoost: Unbiased Boosting
-        with Categorical Features}. \emph{Advances in Neural Information Processing
-        Systems (NeurIPS)}~31.
+  \bibitem{catboost} Prokhorenkova, L., Gusev, G., Vorobev, A., Dorogush,
+        A.~V., and Gulin, A. (2018). \href{https://arxiv.org/abs/1706.09516}{CatBoost:
+        Unbiased Boosting with Categorical Features}. \emph{Advances in Neural
+        Information Processing Systems (NeurIPS)}~31.
 
-  \item \href{https://catboost.ai/}{CatBoost documentation}.
+  \bibitem{catboostdocs} \href{https://catboost.ai/}{CatBoost documentation}.
 
-  \item Pedregosa, F., et al. (2011).
-        \href{https://jmlr.org/papers/v12/pedregosa11a.html}{Scikit-learn: Machine
-        Learning in Python}. \emph{Journal of Machine Learning Research}, 12,
-        2825--2830.
+  \bibitem{sklearn} Pedregosa, F., et al. (2011).
+        \href{https://jmlr.org/papers/v12/pedregosa11a.html}{Scikit-learn:
+        Machine Learning in Python}. \emph{Journal of Machine Learning
+        Research}, 12, 2825--2830.
 
-  \item Speer, R. \href{https://github.com/rspeer/wordfreq}{\texttt{wordfreq}:
+  \bibitem{wordfreq} Speer, R. \href{https://github.com/rspeer/wordfreq}{\texttt{wordfreq}:
         Word-frequency data for many languages}.
 
-  \item Carnegie Mellon University.
+  \bibitem{cmudict} Carnegie Mellon University.
         \href{http://www.speech.cs.cmu.edu/cgi-bin/cmudict}{\emph{The CMU
         Pronouncing Dictionary}}, accessed via the
         \href{https://github.com/aparrish/pronouncing}{\texttt{pronouncing}}
         Python package (A.~Parrish).
 
-  \item DSF Literacy Resources.
+  \bibitem{phonemes} DSF Literacy Resources.
         \href{https://www.readingrockets.org/sites/default/files/migrated/the-44-phonemes-of-english.pdf}{\emph{The
         44 Sounds (Phonemes) of English}}. Reading Rockets.
 
-  \item Oxford College Math Center, Emory University.
+  \bibitem{letterfreq} Oxford College Math Center, Emory University.
         \href{https://mathcenter.oxford.emory.edu/site/math125/englishLetterFreqs/}{\emph{Letter
         Frequencies in English}}.
-\end{enumerate}
+\end{thebibliography}
+
+\appendix
+
+\section{Appendix}
+
+The source code is provided as an attachment to this report and does not need
+to be included in the same file. Notebooks \texttt{1.ipynb} and
+\texttt{2.ipynb} contain the participation and distribution pipelines; the
+script \texttt{3.py} contains the difficulty pipeline. The cleaned data set is
+exported as \texttt{data/cleaned.csv}.
+
+\vspace{0.5em}
+
+\noindent\textbf{GitHub Repository:}
+\href{https://github.com/mradovic38/comap-2023-mcm-wordle}
+{github.com/mradovic38/comap-2023-mcm-wordle}
+
 
 \end{document}
